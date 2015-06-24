@@ -12,6 +12,7 @@ using Microsoft.Data.Entity.Utilities;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ExpressionVisitors;
+using System;
 
 namespace Microsoft.Data.Entity.Query.ExpressionVisitors
 {
@@ -19,7 +20,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
     {
         private readonly EntityQueryModelVisitor _queryModelVisitor;
         private readonly bool _inProjection;
-        
+
         private bool _inMember;
 
         public MemberAccessBindingExpressionVisitor(
@@ -109,8 +110,6 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
 
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
-            MethodCallExpression newExpression = null;
-
             if (methodCallExpression.Method.IsGenericMethod
                 && ReferenceEquals(
                     methodCallExpression.Method.GetGenericMethodDefinition(),
@@ -125,30 +124,19 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
 
                 if (newArguments[0].Type == typeof(ValueBuffer))
                 {
-                    // Compensate for ValueBuffer being a struct, and hence not compatible with Object method
-                    newExpression
-                        = Expression.Call(
-                            QueryExtensions.ValueBufferPropertyMethodInfo
-                                .MakeGenericMethod(methodCallExpression.Method.GetGenericArguments()),
-                            newArguments);
+                    var bindExpression =
+                        _queryModelVisitor.BindMethodCallToValueBuffer(methodCallExpression, newArguments[0]);
+
+                    if (bindExpression == null)
+                    {
+                        throw new InvalidOperationException();
+                    }
+
+                    return bindExpression;
                 }
             }
 
-            if (newExpression == null)
-            {
-                newExpression
-                    = (MethodCallExpression)base.VisitMethodCall(methodCallExpression);
-            }
-
-            if (newExpression != methodCallExpression
-                && newExpression.Arguments.Any()
-                && newExpression.Arguments[0].Type == typeof(ValueBuffer))
-            {
-                return
-                    _queryModelVisitor
-                        .BindMethodCallToValueBuffer(methodCallExpression, newExpression.Arguments[0])
-                    ?? newExpression;
-            }
+            var newExpression = (MethodCallExpression)base.VisitMethodCall(methodCallExpression);
 
             return _queryModelVisitor
                 .BindMethodCallExpression(
