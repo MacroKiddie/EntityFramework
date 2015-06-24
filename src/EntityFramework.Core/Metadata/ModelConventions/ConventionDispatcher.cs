@@ -38,9 +38,9 @@ namespace Microsoft.Data.Entity.Metadata.ModelConventions
         {
             Check.NotNull(propertyBuilder, nameof(propertyBuilder));
 
-            foreach (var entityTypeConvention in _conventionSet.PropertyAddedConventions)
+            foreach (var propertyConvention in _conventionSet.PropertyAddedConventions)
             {
-                propertyBuilder = entityTypeConvention.Apply(propertyBuilder);
+                propertyBuilder = propertyConvention.Apply(propertyBuilder);
                 if (propertyBuilder == null)
                 {
                     break;
@@ -98,6 +98,22 @@ namespace Microsoft.Data.Entity.Metadata.ModelConventions
             Check.NotNull(modelBuilder, nameof(modelBuilder));
 
             foreach (var modelConvention in _conventionSet.ModelInitializedConventions)
+            {
+                modelBuilder = modelConvention.Apply(modelBuilder);
+                if (modelBuilder == null)
+                {
+                    break;
+                }
+            }
+
+            return modelBuilder;
+        }
+
+        public virtual InternalModelBuilder ValidatingModel([NotNull] InternalModelBuilder modelBuilder)
+        {
+            Check.NotNull(modelBuilder, nameof(modelBuilder));
+
+            foreach (var modelConvention in _conventionSet.ModelBuiltConventions)
             {
                 modelBuilder = modelConvention.Apply(modelBuilder);
                 if (modelBuilder == null)

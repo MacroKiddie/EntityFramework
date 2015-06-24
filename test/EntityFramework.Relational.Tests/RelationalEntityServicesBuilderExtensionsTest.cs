@@ -31,6 +31,7 @@ namespace Microsoft.Data.Entity.Relational.Tests
             VerifySingleton<TypedValueBufferFactoryFactory>();
             VerifySingleton<IMigrationModelFactory>();
             VerifySingleton<RelationalModelValidator>();
+            VerifySingleton<RelationalConventionSetBuilder>();
 
             VerifyScoped<IMigrator>();
             VerifyScoped<IMigrationAssembly>();
